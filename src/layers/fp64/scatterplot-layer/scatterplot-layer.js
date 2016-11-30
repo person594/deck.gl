@@ -17,12 +17,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-import {Layer} from '../../../lib';
-import {assembleShaders} from '../../../shader-utils';
-import {GL, Model, Geometry} from 'luma.gl';
-import {fp64ify} from '../../../lib/utils/fp64';
 
-const glslify = require('glslify');
+import {Layer, assembleShaders} from '../../..';
+import {fp64ify} from '../../../lib/utils/fp64';
+import {GL, Model, Geometry} from 'luma.gl';
+import {readFileSync} from 'fs';
+import {join} from 'path';
+
 const DEFAULT_COLOR = [255, 0, 255, 255];
 
 const defaultGetPosition = x => x.position;
@@ -40,12 +41,16 @@ export default class ScatterplotLayer64 extends Layer {
    * @class
    * @param {object} props
    * @param {number} props.radius - point radius
+   * @param {number} props.radiusMinPixels - min point radius in pixels
+   * @param {number} props.radiusMinPixels - max point radius in pixels
    */
   constructor({
     getPosition = defaultGetPosition,
     getRadius = defaultGetRadius,
     getColor = defaultGetColor,
     radius = 30,
+    radiusMinPixels = 0,
+    radiusMaxPixels = Number.MAX_SAFE_INTEGER,
     drawOutline = false,
     strokeWidth = 1,
     ...props
@@ -57,6 +62,8 @@ export default class ScatterplotLayer64 extends Layer {
       radius,
       drawOutline,
       strokeWidth,
+      radiusMinPixels,
+      radiusMaxPixels,
       ...props
     });
   }
@@ -85,6 +92,8 @@ export default class ScatterplotLayer64 extends Layer {
     this.calculateZoomRadius();
     this.state.model.render({
       ...uniforms,
+      radiusMinPixels: this.props.radiusMinPixels,
+      radiusMaxPixels: this.props.radiusMaxPixels,
       zoomRadiusFP64: this.state.zoomRadiusFP64
     });
   }
@@ -107,8 +116,8 @@ export default class ScatterplotLayer64 extends Layer {
       gl,
       id: this.props.id,
       ...assembleShaders(gl, {
-        vs: glslify('./scatterplot-layer-vertex.glsl'),
-        fs: glslify('./scatterplot-layer-fragment.glsl'),
+        vs: readFileSync(join(__dirname, './scatterplot-layer-vertex.glsl')),
+        fs: readFileSync(join(__dirname, './scatterplot-layer-fragment.glsl')),
         fp64: true,
         project64: true
       }),

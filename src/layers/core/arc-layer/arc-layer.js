@@ -18,11 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import {Layer} from '../../../lib';
-import {assembleShaders} from '../../../shader-utils';
+import {Layer, assembleShaders} from '../../..';
 import {GL, Model, Geometry} from 'luma.gl';
-
-const glslify = require('glslify');
+import {join} from 'path';
+import {readFileSync} from 'fs';
 
 const DEFAULT_COLOR = [0, 0, 255, 255];
 
@@ -82,10 +81,13 @@ export default class ArcLayer extends Layer {
   draw({uniforms}) {
     const {gl} = this.context;
     const lineWidth = this.screenToDevicePixels(this.props.strokeWidth);
-    const oldLineWidth = gl.getParameter(GL.LINE_WIDTH);
     gl.lineWidth(lineWidth);
     this.state.model.render(uniforms);
-    gl.lineWidth(oldLineWidth);
+    // Setting line width back to 1 is here to workaround a Google Chrome bug
+    // gl.clear() and gl.isEnabled() will return GL_INVALID_VALUE even with
+    // correct parameter
+    // This is not happening on Safari and Firefox
+    gl.lineWidth(1.0);
   }
 
   _createModel(gl) {
@@ -98,8 +100,8 @@ export default class ArcLayer extends Layer {
     return new Model({
       gl,
       ...assembleShaders(gl, {
-        vs: glslify('./arc-layer-vertex.glsl'),
-        fs: glslify('./arc-layer-fragment.glsl')
+        vs: readFileSync(join(__dirname, './arc-layer-vertex.glsl')),
+        fs: readFileSync(join(__dirname, './arc-layer-fragment.glsl'))
       }),
       geometry: new Geometry({
         drawMode: GL.LINE_STRIP,

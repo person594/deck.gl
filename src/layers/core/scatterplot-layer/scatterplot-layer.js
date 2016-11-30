@@ -17,11 +17,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-import {Layer} from '../../../lib';
-import {assembleShaders} from '../../../shader-utils';
-import {GL, Model, Geometry} from 'luma.gl';
 
-const glslify = require('glslify');
+import {Layer, assembleShaders} from '../../..';
+import {GL, Model, Geometry} from 'luma.gl';
+import {readFileSync} from 'fs';
+import {join} from 'path';
 
 const DEFAULT_COLOR = [255, 0, 255, 255];
 
@@ -40,12 +40,16 @@ export default class ScatterplotLayer extends Layer {
    * @class
    * @param {object} props
    * @param {number} props.radius - point radius in meters
+   * @param {number} props.radiusMinPixels - min point radius in pixels
+   * @param {number} props.radiusMinPixels - max point radius in pixels
    */
   constructor({
     getPosition = defaultGetPosition,
     getRadius = defaultGetRadius,
     getColor = defaultGetColor,
     radius = 30,
+    radiusMinPixels = 0,
+    radiusMaxPixels = Number.MAX_SAFE_INTEGER,
     drawOutline = false,
     strokeWidth = 1,
     ...props
@@ -57,6 +61,8 @@ export default class ScatterplotLayer extends Layer {
       drawOutline,
       strokeWidth,
       radius,
+      radiusMinPixels,
+      radiusMaxPixels,
       ...props
     });
   }
@@ -77,7 +83,9 @@ export default class ScatterplotLayer extends Layer {
     });
   }
 
-  updateState({props, oldProps}) {
+  updateState(evt) {
+    super.updateState(evt);
+    const {props, oldProps} = evt;
     if (props.drawOutline !== oldProps.drawOutline) {
       this.state.model.geometry.drawMode =
         props.drawOutline ? GL.LINE_LOOP : GL.TRIANGLE_FAN;
@@ -87,13 +95,18 @@ export default class ScatterplotLayer extends Layer {
   draw({uniforms}) {
     const {gl} = this.context;
     const lineWidth = this.screenToDevicePixels(this.props.strokeWidth);
-    const oldLineWidth = gl.getParameter(GL.LINE_WIDTH);
     gl.lineWidth(lineWidth);
     this.state.model.render({
       ...uniforms,
-      radius: this.props.radius
+      radius: this.props.radius,
+      radiusMinPixels: this.props.radiusMinPixels,
+      radiusMaxPixels: this.props.radiusMaxPixels
     });
-    gl.lineWidth(oldLineWidth);
+    // Setting line width back to 1 is here to workaround a Google Chrome bug
+    // gl.clear() and gl.isEnabled() will return GL_INVALID_VALUE even with
+    // correct parameter
+    // This is not happening on Safari and Firefox
+    gl.lineWidth(1.0);
   }
 
   _getModel(gl) {
@@ -114,8 +127,8 @@ export default class ScatterplotLayer extends Layer {
       gl,
       id: 'scatterplot',
       ...assembleShaders(gl, {
-        vs: glslify('./scatterplot-layer-vertex.glsl'),
-        fs: glslify('./scatterplot-layer-fragment.glsl')
+        vs: readFileSync(join(__dirname, './scatterplot-layer-vertex.glsl')),
+        fs: readFileSync(join(__dirname, './scatterplot-layer-fragment.glsl'))
       }),
       geometry: new Geometry({
         drawMode: GL.TRIANGLE_FAN,

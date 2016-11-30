@@ -22,6 +22,44 @@ Ref: http://keepachangelog.com/en/0.3.0/
 
 ### deck.gl v3
 
+#### [3.0.9, 3.0.10] - 2016-11-18
+
+- Bumped viewport-mercator-project version for the unproject fix.
+- Updated dependency versions (#229)
+- Added test code for attribute-manager (#213)
+- Added minMax radius for the scatterplot-layer (#230)
+
+#### [3.0.8] - 2016-11-18
+
+- Performance optimization: remove unnecessary gl.getParameter() calls (#227)
+
+#### [3.0.7] - 2016-11-16
+
+- Fixed precision issue for vec2_mix_fp64 function (#223)
+- Added mouse event object to hover and click event parameter (#255)
+
+#### [3.0.6] - 2016-11-14
+
+- Bug fix for picking not returning x, y coordinates (#220)
+
+#### [3.0.5] - 2016-11-14
+
+- Performance optimization: prevent redundant data calculation (#222)
+
+#### [3.0.3] - 2016-11-14
+
+- Bug fixes for ScatterplotLayer not being updated with new data prop (#215)
+- Performance optimization: prevent fbo from reallocating every time (#217)
+
+#### [3.0.2] - 2016-11-12
+
+- Performance optimization for examples in gh-pages
+
+#### [3.0.1] - 2016-11-11
+
+- Enable blending by default
+- Fix syntax highlighting in gh-pages
+
 #### [3.0.0] - Major deck.gl Release
 
 For details see [What's New](docs/whats-new.md)

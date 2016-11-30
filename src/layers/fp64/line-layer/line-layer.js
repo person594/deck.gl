@@ -17,12 +17,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-import {Layer} from '../../../lib';
-import {assembleShaders} from '../../../shader-utils';
-import {GL, Model, Geometry} from 'luma.gl';
-import {fp64ify} from '../../../lib/utils/fp64';
 
-const glslify = require('glslify');
+import {Layer, assembleShaders} from '../../..';
+import {fp64ify} from '../../../lib/utils/fp64';
+import {GL, Model, Geometry} from 'luma.gl';
+import {readFileSync} from 'fs';
+import {join} from 'path';
 
 const DEFAULT_COLOR = [0, 255, 0, 255];
 
@@ -73,10 +73,13 @@ export default class LineLayer64 extends Layer {
   draw({uniforms}) {
     const {gl} = this.context;
     const lineWidth = this.screenToDevicePixels(this.props.strokeWidth);
-    const oldLineWidth = gl.getParameter(GL.LINE_WIDTH);
     gl.lineWidth(lineWidth);
     this.state.model.render(uniforms);
-    gl.lineWidth(oldLineWidth);
+    // Setting line width back to 1 is here to workaround a Google Chrome bug
+    // gl.clear() and gl.isEnabled() will return GL_INVALID_VALUE even with
+    // correct parameter
+    // This is not happening on Safari and Firefox
+    gl.lineWidth(1.0);
   }
 
   createModel(gl) {
@@ -86,8 +89,8 @@ export default class LineLayer64 extends Layer {
       gl,
       id: this.props.id,
       ...assembleShaders(gl, {
-        vs: glslify('./line-layer-vertex.glsl'),
-        fs: glslify('./line-layer-fragment.glsl'),
+        vs: readFileSync(join(__dirname, './line-layer-vertex.glsl')),
+        fs: readFileSync(join(__dirname, './line-layer-fragment.glsl')),
         fp64: true,
         project64: true
       }),

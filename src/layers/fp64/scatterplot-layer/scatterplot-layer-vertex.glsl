@@ -17,6 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 #define SHADER_NAME scatterplot-layer-64-vertex-shader
 
 attribute vec3 positions;
@@ -29,6 +30,8 @@ attribute vec3 instancePickingColors;
 // Only one-dimensional arrays may be declared in GLSL ES 1.0. specs p.24
 uniform float opacity;
 uniform vec2 zoomRadiusFP64;
+uniform float radiusMinPixels;
+uniform float radiusMaxPixels;
 uniform float renderPickingBuffer;
 
 varying vec4 vColor;
