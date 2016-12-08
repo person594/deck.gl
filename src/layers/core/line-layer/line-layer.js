@@ -62,7 +62,8 @@ export default class LineLayer extends Layer {
 
     const {attributeManager} = this.state;
     attributeManager.addInstanced({
-      instancePositions: {size: 4, update: this.calculateInstancePositions},
+      instanceSourcePositions: {size: 3, update: this.calculateInstanceSourcePositions},
+      instanceTargetPositions: {size: 3, update: this.calculateInstanceTargetPositions},
       instanceColors: {
         type: GL.UNSIGNED_BYTE,
         size: 4,
@@ -83,16 +84,20 @@ export default class LineLayer extends Layer {
     gl.lineWidth(1.0);
   }
 
+  getShaders() {
+    return {
+      vs: readFileSync(join(__dirname, './line-layer-vertex.glsl'), 'utf8'),
+      fs: readFileSync(join(__dirname, './line-layer-fragment.glsl'), 'utf8')
+    };
+  }
+
   createModel(gl) {
     const positions = [0, 0, 0, 1, 1, 1];
 
     return new Model({
       gl,
       id: this.props.id,
-      ...assembleShaders(gl, {
-        vs: readFileSync(join(__dirname, './line-layer-vertex.glsl')),
-        fs: readFileSync(join(__dirname, './line-layer-fragment.glsl'))
-      }),
+      ...assembleShaders(gl, this.getShaders()),
       geometry: new Geometry({
         drawMode: GL.LINE_STRIP,
         positions: new Float32Array(positions)
@@ -101,17 +106,28 @@ export default class LineLayer extends Layer {
     });
   }
 
-  calculateInstancePositions(attribute) {
-    const {data, getSourcePosition, getTargetPosition} = this.props;
+  calculateInstanceSourcePositions(attribute) {
+    const {data, getSourcePosition} = this.props;
     const {value, size} = attribute;
     let i = 0;
     for (const object of data) {
       const sourcePosition = getSourcePosition(object);
-      const targetPosition = getTargetPosition(object);
       value[i + 0] = sourcePosition[0];
       value[i + 1] = sourcePosition[1];
-      value[i + 2] = targetPosition[0];
-      value[i + 3] = targetPosition[1];
+      value[i + 2] = sourcePosition[2] || 0;
+      i += size;
+    }
+  }
+
+  calculateInstanceTargetPositions(attribute) {
+    const {data, getTargetPosition} = this.props;
+    const {value, size} = attribute;
+    let i = 0;
+    for (const object of data) {
+      const targetPosition = getTargetPosition(object);
+      value[i + 0] = targetPosition[0];
+      value[i + 1] = targetPosition[1];
+      value[i + 2] = targetPosition[2] || 0;
       i += size;
     }
   }

@@ -2,7 +2,7 @@
   "name": "deck.gl",
   "description": "A suite of 3D-enabled data visualization overlays, suitable for react-map-gl",
   "license": "MIT",
-  "version": "3.0.10",
+  "version": "3.1.1",
   "keywords": [
     "webgl",
     "visualization",
@@ -21,7 +21,8 @@
     "index.js",
     "react.js",
     "viewport.js",
-    "samples.js"
+    "samples.js",
+    "experimental.js"
   ],
   "dependencies": {
     "autobind-decorator": "^1.3.3",
@@ -33,15 +34,13 @@
     "gl-matrix": "^2.3.2",
     "lodash.flattendeep": "^4.4.0",
     "save-pixels": "^2.3.0",
-    "viewport-mercator-project": "3.0.0-beta3",
-    "webgl-obj-loader": "^0.1.1"
+    "viewport-mercator-project": "3.0.0-beta3"
   },
   "devDependencies": {
     "babel-cli": "^6.3.15",
     "babel-core": "^6.7.7",
     "babel-eslint": "^6.0.0",
     "babel-plugin-static-fs": "^1.1.0",
-    "babel-plugin-transform-class-properties": "^6.18.0",
     "babel-plugin-transform-decorators-legacy": "^1.3.4",
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-react": "^6.3.13",
@@ -65,15 +64,15 @@
     "gl": "^4.0.1",
     "highlight.js": "^9.7.0",
     "immutable": "^3.7.5",
-    "luma.gl": "^2.10.0",
+    "luma.gl": "^2.10.3",
     "marked": "^0.3.6",
     "react": "^15.3.2",
-    "react-addons-pure-render-mixin": "^15.3.2",
     "react-addons-test-utils": "^15.0.2",
     "react-dom": "^15.3.2",
     "react-map-gl": "^1.7.2",
     "react-redux": "^4.4.5",
     "react-router": "^2.8.1",
+    "react-stats": "0.0.5",
     "redux": "^3.6.0",
     "redux-thunk": "^2.1.0",
     "sassify": "^2.0.0",
@@ -88,7 +87,7 @@
   "peerDependencies": {
     "react": "0.14.x - 15.x",
     "react-dom": "0.14.x - 15.x",
-    "luma.gl": "^2.10.0"
+    "luma.gl": "^2.10.3"
   },
   "scripts": {
     "build": "npm run build-dist && npm run build-script",
@@ -109,7 +108,7 @@
     "demo-gh-pages-force": "git push origin `git subtree split --prefix dist-demo master`:gh-pages --force",
     "demo-publish": "npm run build && npm run demo-build && git add dist-demo -f && git commit -m 'UPDATE DOCS' --no-verify && npm run demo-gh-pages",
     "demo-publish-force": "npm run build && npm run demo-build && git add dist-demo -f && git commit -m 'UPDATE DOCS' --no-verify && npm run demo-gh-pages-force",
-    "lint": "eslint src",
+    "lint": "eslint src exhibits/app.js",
     "precommit": "npm test",
     "mypublish": "npm run build && npm run test-fast && npm publish",
     "test": "npm run lint && npm run build-dist && npm run test-headless",

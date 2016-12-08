@@ -60,8 +60,18 @@ export default class LineLayer64 extends Layer {
 
     const {attributeManager} = this.state;
     attributeManager.addInstanced({
-      instanceSourcePositionsFP64: {size: 4, update: this.calculateInstanceSourcePositions},
-      instanceTargetPositionsFP64: {size: 4, update: this.calculateInstanceTargetPositions},
+      instanceSourcePositionsFP64: {
+        size: 4,
+        update: this.calculateInstanceSourcePositions
+      },
+      instanceTargetPositionsFP64: {
+        size: 4,
+        update: this.calculateInstanceTargetPositions
+      },
+      instanceElevations: {
+        size: 2,
+        update: this.calculateInstanceElevations
+      },
       instanceColors: {
         size: 4,
         type: GL.UNSIGNED_BYTE,
@@ -82,18 +92,21 @@ export default class LineLayer64 extends Layer {
     gl.lineWidth(1.0);
   }
 
+  getShaders() {
+    return {
+      vs: readFileSync(join(__dirname, './line-layer-vertex.glsl'), 'utf8'),
+      fs: readFileSync(join(__dirname, './line-layer-fragment.glsl'), 'utf8'),
+      fp64: true,
+      project64: true
+    };
+  }
+
   createModel(gl) {
     const positions = [0, 0, 0, 1, 1, 1];
-
     return new Model({
       gl,
       id: this.props.id,
-      ...assembleShaders(gl, {
-        vs: readFileSync(join(__dirname, './line-layer-vertex.glsl')),
-        fs: readFileSync(join(__dirname, './line-layer-fragment.glsl')),
-        fp64: true,
-        project64: true
-      }),
+      ...assembleShaders(gl, this.getShaders()),
       geometry: new Geometry({
         drawMode: GL.LINE_STRIP,
         positions: new Float32Array(positions)
@@ -122,6 +135,19 @@ export default class LineLayer64 extends Layer {
       const targetPosition = getTargetPosition(object);
       [value[i + 0], value[i + 1]] = fp64ify(targetPosition[0]);
       [value[i + 2], value[i + 3]] = fp64ify(targetPosition[1]);
+      i += size;
+    }
+  }
+
+  calculateInstanceElevations(attribute) {
+    const {data, getSourcePosition, getTargetPosition} = this.props;
+    const {value, size} = attribute;
+    let i = 0;
+    for (const object of data) {
+      const sourcePosition = getSourcePosition(object);
+      const targetPosition = getTargetPosition(object);
+      value[i + 0] = sourcePosition[2] || 0;
+      value[i + 1] = targetPosition[2] || 0;
       i += size;
     }
   }

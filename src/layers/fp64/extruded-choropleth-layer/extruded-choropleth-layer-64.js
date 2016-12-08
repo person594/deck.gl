@@ -22,10 +22,19 @@ import {Layer, assembleShaders} from '../../..';
 import {fp64ify} from '../../../lib/utils/fp64';
 import {GL, Model, Geometry} from 'luma.gl';
 import flattenDeep from 'lodash.flattendeep';
+import earcut from 'earcut';
+import {vec3} from 'gl-matrix';
 import {readFileSync} from 'fs';
 import {join} from 'path';
-import {vec3} from 'gl-matrix';
-import earcut from 'earcut';
+
+const DEFAULT_COLOR = [180, 180, 200];
+const DEFAULT_AMBIENT_COLOR = [255, 255, 255];
+const DEFAULT_POINTLIGHT_AMBIENT_COEFFICIENT = 0.1;
+const DEFAULT_POINTLIGHT_LOCATION = [40.4406, -79.9959, 100];
+const DEFAULT_POINTLIGHT_COLOR = [255, 255, 255];
+const DEFAULT_POINTLIGHT_ATTENUATION = 1.0;
+const DEFAULT_MATERIAL_SPECULAR_COLOR = [255, 255, 255];
+const DEFAULT_MATERIAL_SHININESS = 1;
 
 export default class ExtrudedChoroplethLayer64 extends Layer {
 
@@ -57,44 +66,19 @@ export default class ExtrudedChoroplethLayer64 extends Layer {
   }
 
   initializeState() {
-    const {gl} = this.context;
     const {attributeManager} = this.state;
-    const {
-      elevation, color, ambientColor, pointLightColor,
-      pointLightLocation, pointLightAmbientCoefficient,
-      pointLightAttenuation, materialSpecularColor, materialShininess
-    } = this.props;
-
-    attributeManager.addDynamic({
-      indices: {size: 1, 0: 'index', isIndexed: true},
-      positions: {size: 4, 0: 'x', 2: 'y'},
-      heights: {size: 2, 0: 'height'},
-      normals: {size: 3, 0: 'x', 1: 'y', 2: 'z'},
-      colors: {size: 3, 0: 'red', 1: 'green', 2: 'blue'}
-    }, {
-      // Primtive attributes
-      indices: {update: this.calculateIndices},
-      positions: {update: this.calculatePositions},
-      heights: {update: this.calculateHeights},
-      colors: {update: this.calculateColors},
-      normals: {update: this.calculateNormals}
+    attributeManager.add({
+      indices: {size: 1, isIndexed: true, update: this.calculateIndices},
+      positions: {size: 4, update: this.calculatePositions},
+      heights: {size: 2, update: this.calculateHeights},
+      normals: {size: 3, update: this.calculateNormals},
+      colors: {size: 3, update: this.calculateColors}
     });
 
+    const {gl} = this.context;
     this.setState({
       numInstances: 0,
       model: this.getModel(gl)
-    });
-
-    this.setUniforms({
-      elevation: Number.isFinite(elevation) ? elevation : 1,
-      colors: color || [180, 180, 200],
-      uAmbientColor: ambientColor || [255, 255, 255],
-      uPointLightAmbientCoefficient: pointLightAmbientCoefficient || 0.1,
-      uPointLightLocation: pointLightLocation || [40.4406, -79.9959, 100],
-      uPointLightColor: pointLightColor || [255, 255, 255],
-      uPointLightAttenuation: pointLightAttenuation || 1.0,
-      uMaterialSpecularColor: materialSpecularColor || [255, 255, 255],
-      uMaterialShininess: materialShininess || 1
     });
   }
 
@@ -104,6 +88,26 @@ export default class ExtrudedChoroplethLayer64 extends Layer {
       this.extractExtrudedChoropleth();
       attributeManager.invalidateAll();
     }
+
+    const {
+      elevation,
+      color, ambientColor, pointLightColor,
+      pointLightLocation, pointLightAmbientCoefficient,
+      pointLightAttenuation, materialSpecularColor, materialShininess
+    } = this.props;
+
+    this.setUniforms({
+      elevation: Number.isFinite(elevation) ? elevation : 1,
+      colors: color || DEFAULT_COLOR,
+      uAmbientColor: ambientColor || DEFAULT_AMBIENT_COLOR,
+      uPointLightAmbientCoefficient:
+        pointLightAmbientCoefficient || DEFAULT_POINTLIGHT_AMBIENT_COEFFICIENT,
+      uPointLightLocation: pointLightLocation || DEFAULT_POINTLIGHT_LOCATION,
+      uPointLightColor: pointLightColor || DEFAULT_POINTLIGHT_COLOR,
+      uPointLightAttenuation: pointLightAttenuation || DEFAULT_POINTLIGHT_ATTENUATION,
+      uMaterialSpecularColor: materialSpecularColor || DEFAULT_MATERIAL_SPECULAR_COLOR,
+      uMaterialShininess: materialShininess || DEFAULT_MATERIAL_SHININESS
+    });
   }
 
   draw({uniforms}) {
@@ -121,6 +125,15 @@ export default class ExtrudedChoroplethLayer64 extends Layer {
     info.object = feature;
   }
 
+  getShaders() {
+    return {
+      vs: readFileSync(join(__dirname, './extruded-choropleth-layer-vertex.glsl'), 'utf8'),
+      fs: readFileSync(join(__dirname, './extruded-choropleth-layer-fragment.glsl'), 'utf8'),
+      fp64: true,
+      project64: true
+    };
+  }
+
   getModel(gl) {
     // Make sure we have 32 bit support
     // TODO - this could be done automatically by luma in "draw"
@@ -128,6 +141,7 @@ export default class ExtrudedChoroplethLayer64 extends Layer {
     if (!gl.getExtension('OES_element_index_uint')) {
       throw new Error('Extruded choropleth layer needs 32 bit indices');
     }
+
     // Buildings are 3d so depth test should be enabled
     // TODO - it is a little heavy handed to have a layer set this
     // Alternatively, check depth test and warn if not set, or add a prop
@@ -138,12 +152,7 @@ export default class ExtrudedChoroplethLayer64 extends Layer {
     return new Model({
       gl,
       id: this.props.id,
-      ...assembleShaders(gl, {
-        vs: readFileSync(join(__dirname, './extruded-choropleth-layer-vertex.glsl')),
-        fs: readFileSync(join(__dirname, './extruded-choropleth-layer-fragment.glsl')),
-        fp64: true,
-        project64: true
-      }),
+      ...assembleShaders(gl, this.getShaders()),
       geometry: new Geometry({
         drawMode: this.props.drawWireframe ? GL.LINES : GL.TRIANGLES
       }),

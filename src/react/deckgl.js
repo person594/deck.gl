@@ -20,44 +20,37 @@
 import React, {PropTypes} from 'react';
 import autobind from 'autobind-decorator';
 import WebGLRenderer from './webgl-renderer';
-import {LayerManager} from '../lib';
-import {EffectManager} from '../experimental/lib';
+import {LayerManager, Layer} from '../lib';
+import {EffectManager, Effect} from '../experimental';
 import {GL, addEvents} from 'luma.gl';
+import {log} from '../lib/utils';
 
 function noop() {}
 
-const PROP_TYPES = {
-  id: PropTypes.string,
-  width: PropTypes.number.isRequired,
-  height: PropTypes.number.isRequired,
-  layers: PropTypes.array.isRequired,
-  effects: PropTypes.array,
-  gl: PropTypes.object,
-  debug: PropTypes.bool,
-  onWebGLInitialized: noop,
-  onLayerClick: noop,
-  onLayerHover: noop
-};
-
-const DEFAULT_PROPS = {
-  id: 'deckgl-overlay',
-  debug: false,
-  gl: null,
-  effects: [],
-  onWebGLInitialized: noop,
-  onLayerClick: noop,
-  onLayerHover: noop
-};
-
 export default class DeckGL extends React.Component {
 
-  static get propTypes() {
-    return PROP_TYPES;
-  }
+  static propTypes = {
+    id: PropTypes.string,
+    width: PropTypes.number.isRequired,
+    height: PropTypes.number.isRequired,
+    layers: PropTypes.arrayOf(PropTypes.instanceOf(Layer)).isRequired,
+    effects: PropTypes.arrayOf(PropTypes.instanceOf(Effect)),
+    gl: PropTypes.object,
+    debug: PropTypes.bool,
+    onWebGLInitialized: noop,
+    onLayerClick: noop,
+    onLayerHover: noop
+  };
 
-  static get defaultProps() {
-    return DEFAULT_PROPS;
-  }
+  static defaultProps = {
+    id: 'deckgl-overlay',
+    debug: false,
+    gl: null,
+    effects: [],
+    onWebGLInitialized: noop,
+    onLayerClick: noop,
+    onLayerHover: noop
+  };
 
   constructor(props) {
     super(props);
@@ -99,6 +92,16 @@ export default class DeckGL extends React.Component {
     }
     this._updateLayers(this.props);
 
+    // Check if a mouse event has been specified and that at least one of the layers is pickable
+    const hasEvent = this.props.onLayerClick !== noop || this.props.onLayerHover !== noop;
+    const hasPickableLayer = this.layerManager.layers.map(l => l.props.pickable).includes(true);
+    if (hasEvent && !hasPickableLayer) {
+      log.once(
+        0,
+        'You have supplied a mouse event handler but none of your layers got the `pickable` flag.'
+      );
+    }
+
     this.events = addEvents(canvas, {
       cacheSize: false,
       cachePosition: false,
@@ -112,7 +115,7 @@ export default class DeckGL extends React.Component {
   @autobind _onClick(event) {
     const {x, y} = event;
     const selectedInfos = this.layerManager.pickLayer({x, y, mode: 'click'});
-    const firstInfo = selectedInfos.length > 0 ? selectedInfos[0] : null;
+    const firstInfo = selectedInfos.find(info => info.index >= 0);
     // Event.event holds the original MouseEvent object
     this.props.onLayerClick(firstInfo, selectedInfos, event.event);
   }
@@ -121,7 +124,7 @@ export default class DeckGL extends React.Component {
   @autobind _onMouseMove(event) {
     const {x, y} = event;
     const selectedInfos = this.layerManager.pickLayer({x, y, mode: 'hover'});
-    const firstInfo = selectedInfos.length > 0 ? selectedInfos[0] : null;
+    const firstInfo = selectedInfos.find(info => info.index >= 0);
     // Event.event holds the original MouseEvent object
     this.props.onLayerHover(firstInfo, selectedInfos, event.event);
   }

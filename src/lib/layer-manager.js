@@ -56,6 +56,7 @@ export default class LayerManager {
   setContext({
     width, height, latitude, longitude, zoom, pitch, bearing, altitude
   }) {
+    /* eslint-disable */
     const oldViewport = this.context.viewport;
     const viewportChanged = !oldViewport ||
       width !== oldViewport.width ||
@@ -86,11 +87,12 @@ export default class LayerManager {
   }
 
   updateLayers({newLayers}) {
+    /* eslint-disable */
     assert(this.context.viewport,
       'LayerManager.updateLayers: viewport not set');
 
     // Filter out any null layers
-    newLayers = newLayers.filter(newLayer => Boolean(newLayer));
+    newLayers = newLayers.filter(newLayer => newLayer !== null);
 
     for (const layer of newLayers) {
       layer.context = this.context;
@@ -101,6 +103,7 @@ export default class LayerManager {
       oldLayers: this.prevLayers,
       newLayers
     });
+
     this.layers = generatedLayers;
     // Throw first error found, if any
     if (error) {
@@ -202,7 +205,7 @@ export default class LayerManager {
   /* eslint-disable max-statements */
   _matchSublayers({newLayers, oldLayerMap, generatedLayers}) {
     // Filter out any null layers
-    newLayers = newLayers.filter(newLayer => Boolean(newLayer));
+    newLayers = newLayers.filter(newLayer => newLayer !== null);
 
     let error = null;
     for (const newLayer of newLayers) {
@@ -216,6 +219,7 @@ export default class LayerManager {
         if (oldLayer === null) {
           log.once(0, `Multipe new layers with same id ${layerName(newLayer)}`);
         }
+
 
         // Only transfer state at this stage. We must not generate exceptions
         // until all layers' state have been transferred
